@@ -116,18 +116,29 @@ export const useM3ULists = () => {
   };
 
   const refreshList = async (id: string) => {
-    // Simulação de atualização - em produção, aqui você faria o parsing real do M3U
-    const channelCount = Math.floor(Math.random() * 300) + 50;
-    const movieCount = Math.floor(Math.random() * 1500) + 500;
-    const seriesCount = Math.floor(Math.random() * 200) + 50;
+    const list = lists.find(l => l.id === id);
+    if (!list) throw new Error('List not found');
 
-    await updateList(id, {
-      status: 'active',
-      channel_count: channelCount,
-      movie_count: movieCount,
-      series_count: seriesCount,
-      last_updated: new Date().toISOString()
-    });
+    try {
+      // Atualizar status para processando
+      await updateList(id, { status: 'inactive' });
+
+      // Chamar edge function para processar M3U
+      const { data, error } = await supabase.functions.invoke('process-m3u', {
+        body: { listId: id, url: list.url }
+      });
+
+      if (error) throw error;
+
+      // Atualizar a lista local com os novos dados
+      await fetchLists();
+      
+      return data;
+    } catch (error) {
+      console.error('Error refreshing M3U list:', error);
+      await updateList(id, { status: 'error' });
+      throw error;
+    }
   };
 
   useEffect(() => {

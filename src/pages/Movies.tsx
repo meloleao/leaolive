@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Grid, List } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Search, Filter, Grid, List, Play, Heart, Info } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useContent } from '@/hooks/useContent';
+import { useM3ULists } from '@/hooks/useM3ULists';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Movies = () => {
@@ -17,8 +19,10 @@ const Movies = () => {
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedMovie, setSelectedMovie] = useState<any>(null);
   const isMobile = useIsMobile();
   const { content, toggleFavorite, isFavorite } = useContent();
+  const { lists } = useM3ULists();
 
   const movies = content.filter(item => item.type === 'movie');
   
@@ -50,12 +54,41 @@ const Movies = () => {
     }
   };
 
+  const handleMovieSelect = (movie: any) => {
+    setSelectedMovie(movie);
+  };
+
   // Agrupar filmes por categoria
-  const actionMovies = filteredMovies.filter(movie => movie.genre?.includes('Ação'));
-  const comedyMovies = filteredMovies.filter(movie => movie.genre?.includes('Comédia'));
-  const dramaMovies = filteredMovies.filter(movie => movie.genre?.includes('Drama'));
-  const horrorMovies = filteredMovies.filter(movie => movie.genre?.includes('Terror'));
-  const romanceMovies = filteredMovies.filter(movie => movie.genre?.includes('Romance'));
+  const actionMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('ação') || movie.genre?.toLowerCase().includes('action'));
+  const comedyMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('comédia') || movie.genre?.toLowerCase().includes('comedy'));
+  const dramaMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('drama'));
+  const horrorMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('terror') || movie.genre?.toLowerCase().includes('horror'));
+  const romanceMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('romance'));
+
+  if (lists.length === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <Header onMenuToggle={handleMenuToggle} />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <main className={`pt-20 ${isSidebarOpen && !isMobile ? 'ml-64' : ''}`}>
+          <div className="container mx-auto px-4 md:px-8 py-8">
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-semibold mb-2">Nenhuma lista M3U configurada</h2>
+              <p className="text-gray-400 mb-6">
+                Adicione uma lista M3U para acessar filmes
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/m3u-management'}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Configurar Lista M3U
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -141,40 +174,50 @@ const Movies = () => {
           {/* Carrosseis por categoria */}
           {!searchTerm && selectedGenre === 'all' && selectedYear === 'all' ? (
             <div className="space-y-8">
-              <ContentCarousel 
-                title="Ação" 
-                items={actionMovies}
-                onAddToFavorites={handleAddToFavorites}
-                isFavorite={isFavorite}
-              />
+              {actionMovies.length > 0 && (
+                <ContentCarousel 
+                  title="Ação" 
+                  items={actionMovies}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
               
-              <ContentCarousel 
-                title="Comédia" 
-                items={comedyMovies}
-                onAddToFavorites={handleAddToFavorites}
-                isFavorite={isFavorite}
-              />
+              {comedyMovies.length > 0 && (
+                <ContentCarousel 
+                  title="Comédia" 
+                  items={comedyMovies}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
               
-              <ContentCarousel 
-                title="Drama" 
-                items={dramaMovies}
-                onAddToFavorites={handleAddToFavorites}
-                isFavorite={isFavorite}
-              />
+              {dramaMovies.length > 0 && (
+                <ContentCarousel 
+                  title="Drama" 
+                  items={dramaMovies}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
               
-              <ContentCarousel 
-                title="Terror" 
-                items={horrorMovies}
-                onAddToFavorites={handleAddToFavorites}
-                isFavorite={isFavorite}
-              />
+              {horrorMovies.length > 0 && (
+                <ContentCarousel 
+                  title="Terror" 
+                  items={horrorMovies}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
               
-              <ContentCarousel 
-                title="Romance" 
-                items={romanceMovies}
-                onAddToFavorites={handleAddToFavorites}
-                isFavorite={isFavorite}
-              />
+              {romanceMovies.length > 0 && (
+                <ContentCarousel 
+                  title="Romance" 
+                  items={romanceMovies}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
             </div>
           ) : (
             /* Grid de resultados filtrados */
@@ -184,54 +227,59 @@ const Movies = () => {
                 : 'grid-cols-1'
             }`}>
               {filteredMovies.map((movie) => (
-                <div
-                  key={movie.id}
-                  className={`${
-                    viewMode === 'grid' 
-                      ? 'group cursor-pointer' 
-                      : 'flex items-center space-x-4 p-4 bg-gray-900 rounded-lg'
-                  }`}
+                <Card 
+                  key={movie.id} 
+                  className="bg-gray-900 border-gray-800 cursor-pointer hover:border-gray-600 transition-colors"
+                  onClick={() => handleMovieSelect(movie)}
                 >
-                  <div className={viewMode === 'grid' ? 'relative overflow-hidden rounded-md' : 'flex-shrink-0'}>
-                    <img
-                      src={movie.thumbnail}
-                      alt={movie.title}
-                      className={`${
-                        viewMode === 'grid' 
-                          ? 'w-full h-[300px] object-cover' 
-                          : 'w-20 h-28 object-cover rounded'
-                      }`}
-                    />
-                  </div>
-                  
-                  <div className={viewMode === 'grid' ? 'mt-2' : 'flex-1'}>
-                    <h3 className="text-white font-medium truncate">
-                      {movie.title}
-                    </h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-400">
-                      {movie.year && <span>{movie.year}</span>}
-                      {movie.rating && (
-                        <>
-                          <span>•</span>
-                          <span className="border border-gray-600 px-1 py-0.5">
-                            {movie.rating}
-                          </span>
-                        </>
-                      )}
-                      {movie.duration && (
-                        <>
-                          <span>•</span>
-                          <span>{movie.duration}</span>
-                        </>
-                      )}
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <img
+                        src={movie.thumbnail}
+                        alt={movie.title}
+                        className={`${
+                          viewMode === 'grid' 
+                            ? 'w-full h-[300px] object-cover' 
+                            : 'w-20 h-28 object-cover'
+                        }`}
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <Play className="h-12 w-12 text-white" />
+                      </div>
                     </div>
-                    {movie.genre && viewMode === 'list' && (
-                      <Badge variant="outline" className="mt-2 border-gray-600 text-gray-400">
-                        {movie.genre}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+                    
+                    <div className="p-3">
+                      <h3 className="text-white font-medium truncate mb-1">
+                        {movie.title}
+                      </h3>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 text-xs text-gray-400">
+                          {movie.year && <span>{movie.year}</span>}
+                          {movie.rating && (
+                            <span className="border border-gray-600 px-1 py-0.5">
+                              {movie.rating}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToFavorites(movie.id);
+                          }}
+                          className={`${
+                            isFavorite(movie.id)
+                              ? 'text-red-500' 
+                              : 'text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          <Heart className={`h-4 w-4 ${isFavorite(movie.id) ? 'fill-current' : ''}`} />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
@@ -239,6 +287,63 @@ const Movies = () => {
           {filteredMovies.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-400">Nenhum filme encontrado</p>
+            </div>
+          )}
+
+          {/* Modal de detalhes do filme */}
+          {selectedMovie && (
+            <div 
+              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+              onClick={() => setSelectedMovie(null)}
+            >
+              <div 
+                className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="md:col-span-1">
+                    <img
+                      src={selectedMovie.thumbnail}
+                      alt={selectedMovie.title}
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                  <div className="md:col-span-2 p-6">
+                    <h2 className="text-2xl font-bold mb-4">{selectedMovie.title}</h2>
+                    <div className="flex items-center space-x-4 mb-4">
+                      {selectedMovie.year && <span>{selectedMovie.year}</span>}
+                      {selectedMovie.rating && (
+                        <Badge variant="outline" className="border-gray-600 text-gray-400">
+                          {selectedMovie.rating}
+                        </Badge>
+                      )}
+                      {selectedMovie.duration && <span>{selectedMovie.duration}</span>}
+                    </div>
+                    <p className="text-gray-300 mb-6">{selectedMovie.description}</p>
+                    <div className="flex space-x-4">
+                      <Button 
+                        className="bg-red-600 hover:bg-red-700 flex-1"
+                        onClick={() => window.open(selectedMovie.stream_url, '_blank')}
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Assistir Agora
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleAddToFavorites(selectedMovie.id)}
+                        className={`${
+                          isFavorite(selectedMovie.id)
+                            ? 'bg-red-600 text-white border-red-600' 
+                            : 'border-white text-white hover:bg-white hover:text-black'
+                        }`}
+                      >
+                        <Heart className={`mr-2 h-4 w-4 ${isFavorite(selectedMovie.id) ? 'fill-current' : ''}`} />
+                        {isFavorite(selectedMovie.id) ? 'Nos Lions' : 'Adicionar aos Lions'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
