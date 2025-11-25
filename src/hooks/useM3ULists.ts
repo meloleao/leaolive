@@ -38,6 +38,18 @@ export const useM3ULists = () => {
     }
   };
 
+  const testFunction = async () => {
+    try {
+      console.log('Testing function...');
+      const { data, error } = await supabase.functions.invoke('test-m3u');
+      console.log('Test result:', { data, error });
+      return { data, error };
+    } catch (error) {
+      console.error('Test error:', error);
+      return { data: null, error };
+    }
+  };
+
   const addList = async (name: string, url: string) => {
     if (!user) throw new Error('User not authenticated');
 
@@ -188,6 +200,7 @@ export const useM3ULists = () => {
     lists,
     loading,
     fetchLists,
+    testFunction,
     addList,
     updateList,
     deleteList,
