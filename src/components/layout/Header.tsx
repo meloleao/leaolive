@@ -27,6 +27,10 @@ export const Header = ({ onMenuToggle, onSearchClick }: HeaderProps) => {
     setIsUserMenuOpen(false);
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 to-transparent">
       <div className="flex items-center justify-between p-4 md:p-6">
@@ -45,12 +49,42 @@ export const Header = ({ onMenuToggle, onSearchClick }: HeaderProps) => {
         <div className="flex items-center space-x-4">
           {!isMobile && (
             <nav className="hidden lg:flex items-center space-x-6">
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">TV Ao Vivo</a>
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">Filmes</a>
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">Séries</a>
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">EPG</a>
-              <a href="#" className="text-white hover:text-gray-300 transition-colors font-semibold">Meus Lions</a>
-              <a href="/m3u-management" className="text-white hover:text-gray-300 transition-colors">Gerenciar Listas</a>
+              <button 
+                onClick={() => handleNavigation('/tv-live')}
+                className="text-white hover:text-gray-300 transition-colors"
+              >
+                TV Ao Vivo
+              </button>
+              <button 
+                onClick={() => handleNavigation('/movies')}
+                className="text-white hover:text-gray-300 transition-colors"
+              >
+                Filmes
+              </button>
+              <button 
+                onClick={() => handleNavigation('/series')}
+                className="text-white hover:text-gray-300 transition-colors"
+              >
+                Séries
+              </button>
+              <button 
+                onClick={() => handleNavigation('/epg')}
+                className="text-white hover:text-gray-300 transition-colors"
+              >
+                EPG
+              </button>
+              <button 
+                onClick={() => handleNavigation('/my-lions')}
+                className="text-white hover:text-gray-300 transition-colors font-semibold"
+              >
+                Meus Lions
+              </button>
+              <button 
+                onClick={() => handleNavigation('/m3u-management')}
+                className="text-white hover:text-gray-300 transition-colors"
+              >
+                Gerenciar Listas
+              </button>
             </nav>
           )}
 
@@ -88,7 +122,10 @@ export const Header = ({ onMenuToggle, onSearchClick }: HeaderProps) => {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-white hover:bg-white/10"
-                      onClick={() => navigate('/m3u-management')}
+                      onClick={() => {
+                        handleNavigation('/settings');
+                        setIsUserMenuOpen(false);
+                      }}
                     >
                       <Settings className="mr-2 h-4 w-4" />
                       Configurações

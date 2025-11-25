@@ -14,6 +14,7 @@ import {
   PlayCircle
 } from 'lucide-react';
 import { LeaoLiveLogo } from '@/components/ui/logo';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,16 +22,23 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  const navigate = useNavigate();
+
   const menuItems = [
-    { icon: Home, label: 'Início', href: '#' },
-    { icon: Tv, label: 'TV Ao Vivo', href: '#' },
-    { icon: Film, label: 'Filmes', href: '#' },
-    { icon: Tv2, label: 'Séries', href: '#' },
-    { icon: Calendar, label: 'EPG - Guia de Programação', href: '#' },
-    { icon: Heart, label: 'Meus Lions', href: '#', highlight: true },
-    { icon: List, label: 'Gerenciar Listas M3U', href: '#' },
-    { icon: Settings, label: 'Configurações', href: '#' },
+    { icon: Home, label: 'Início', href: '/home' },
+    { icon: Tv, label: 'TV Ao Vivo', href: '/tv-live' },
+    { icon: Film, label: 'Filmes', href: '/movies' },
+    { icon: Tv2, label: 'Séries', href: '/series' },
+    { icon: Calendar, label: 'EPG - Guia de Programação', href: '/epg' },
+    { icon: Heart, label: 'Meus Lions', href: '/my-lions', highlight: true },
+    { icon: List, label: 'Gerenciar Listas M3U', href: '/m3u-management' },
+    { icon: Settings, label: 'Configurações', href: '/settings' },
   ];
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    onClose();
+  };
 
   return (
     <>
@@ -71,7 +79,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     w-full justify-start text-white hover:bg-white/10
                     ${item.highlight ? 'text-red-500 hover:text-red-400 hover:bg-red-500/10' : ''}
                   `}
-                  onClick={onClose}
+                  onClick={() => handleNavigation(item.href)}
                 >
                   <item.icon className="mr-3 h-5 w-5" />
                   {item.label}
