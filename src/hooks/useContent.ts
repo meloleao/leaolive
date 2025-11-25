@@ -28,11 +28,14 @@ export const useContent = () => {
     try {
       console.log('Fetching content for user:', user.id);
       
+      // Corrigindo a query para buscar conteúdo do usuário através das listas M3U
       const { data, error } = await supabase
         .from('content')
         .select(`
           *,
-          m3u_lists!inner(user_id)
+          m3u_lists!inner(
+            user_id
+          )
         `)
         .eq('m3u_lists.user_id', user.id)
         .order('created_at', { ascending: false });
