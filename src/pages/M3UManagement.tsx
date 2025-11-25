@@ -77,6 +77,14 @@ const M3UManagement = () => {
       return;
     }
 
+    // Validar URL
+    try {
+      new URL(newListUrl);
+    } catch {
+      showError('Por favor, insira uma URL válida');
+      return;
+    }
+
     try {
       await addList(newListName, newListUrl);
       setNewListName('');
@@ -100,16 +108,32 @@ const M3UManagement = () => {
   const handleRefresh = async (id: string) => {
     setIsRefreshing(id);
     try {
-      await refreshList(id);
-      showSuccess('Lista atualizada com sucesso!');
+      const result = await refreshList(id);
+      console.log('Refresh result:', result);
+      
+      if (result && result.success) {
+        showSuccess(
+          `Lista atualizada com sucesso! ` +
+          `${result.channelCount || 0} canais, ` +
+          `${result.movieCount || 0} filmes, ` +
+          `${result.seriesCount || 0} séries`
+        );
+      } else {
+        throw new Error('Falha ao processar a lista');
+      }
     } catch (error) {
-      showError('Erro ao atualizar lista');
+      console.error('Refresh error:', error);
+      showError(`Erro ao atualizar lista: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsRefreshing(null);
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta lista? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
     try {
       await deleteList(id);
       showSuccess('Lista removida com sucesso!');

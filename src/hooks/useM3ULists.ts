@@ -123,12 +123,19 @@ export const useM3ULists = () => {
       // Atualizar status para processando
       await updateList(id, { status: 'inactive' });
 
+      console.log(`Refreshing list ${id} from URL: ${list.url}`);
+
       // Chamar edge function para processar M3U
       const { data, error } = await supabase.functions.invoke('process-m3u', {
         body: { listId: id, url: list.url }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message || 'Failed to process M3U list');
+      }
+
+      console.log('Function response:', data);
 
       // Atualizar a lista local com os novos dados
       await fetchLists();
