@@ -11,6 +11,7 @@ import { Search, Filter, Grid, List, Play, Heart, Info } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useContent } from '@/hooks/useContent';
 import { useM3ULists } from '@/hooks/useM3ULists';
+import IPTVPlayer from '@/components/media/IPTVPlayer';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Series = () => {
@@ -56,6 +57,15 @@ const Series = () => {
 
   const handleSerieSelect = (serie: any) => {
     setSelectedSerie(serie);
+  };
+
+  const handleStreamError = (error: string) => {
+    showError(`Erro no stream: ${error}`);
+  };
+
+  const handleStreamEnd = () => {
+    // Lógica para quando o episódio termina
+    console.log('Episode ended');
   };
 
   // Agrupar séries por categoria
@@ -297,18 +307,21 @@ const Series = () => {
               onClick={() => setSelectedSerie(null)}
             >
               <div 
-                className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-gray-900 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="md:col-span-1">
-                    <img
-                      src={selectedSerie.thumbnail}
-                      alt={selectedSerie.title}
-                      className="w-full rounded-lg"
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <IPTVPlayer
+                      streamUrl={selectedSerie.stream_url}
+                      title={selectedSerie.title}
+                      type="series"
+                      poster={selectedSerie.thumbnail}
+                      onStreamEnd={handleStreamEnd}
+                      onError={handleStreamError}
                     />
                   </div>
-                  <div className="md:col-span-2 p-6">
+                  <div className="p-6">
                     <h2 className="text-2xl font-bold mb-4">{selectedSerie.title}</h2>
                     <div className="flex items-center space-x-4 mb-4">
                       {selectedSerie.year && <span>{selectedSerie.year}</span>}
@@ -321,13 +334,6 @@ const Series = () => {
                     </div>
                     <p className="text-gray-300 mb-6">{selectedSerie.description}</p>
                     <div className="flex space-x-4">
-                      <Button 
-                        className="bg-red-600 hover:bg-red-700 flex-1"
-                        onClick={() => window.open(selectedSerie.stream_url, '_blank')}
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Assistir Agora
-                      </Button>
                       <Button
                         variant="outline"
                         onClick={() => handleAddToFavorites(selectedSerie.id)}

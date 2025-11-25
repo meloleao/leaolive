@@ -11,6 +11,7 @@ import { Search, Filter, Grid, List, Play, Heart, Info } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useContent } from '@/hooks/useContent';
 import { useM3ULists } from '@/hooks/useM3ULists';
+import IPTVPlayer from '@/components/media/IPTVPlayer';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Movies = () => {
@@ -56,6 +57,15 @@ const Movies = () => {
 
   const handleMovieSelect = (movie: any) => {
     setSelectedMovie(movie);
+  };
+
+  const handleStreamError = (error: string) => {
+    showError(`Erro no stream: ${error}`);
+  };
+
+  const handleStreamEnd = () => {
+    // Lógica para quando o filme termina
+    console.log('Movie ended');
   };
 
   // Agrupar filmes por categoria
@@ -297,18 +307,21 @@ const Movies = () => {
               onClick={() => setSelectedMovie(null)}
             >
               <div 
-                className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-gray-900 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div className="md:col-span-1">
-                    <img
-                      src={selectedMovie.thumbnail}
-                      alt={selectedMovie.title}
-                      className="w-full rounded-lg"
+                <div className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <IPTVPlayer
+                      streamUrl={selectedMovie.stream_url}
+                      title={selectedMovie.title}
+                      type="movie"
+                      poster={selectedMovie.thumbnail}
+                      onStreamEnd={handleStreamEnd}
+                      onError={handleStreamError}
                     />
                   </div>
-                  <div className="md:col-span-2 p-6">
+                  <div className="p-6">
                     <h2 className="text-2xl font-bold mb-4">{selectedMovie.title}</h2>
                     <div className="flex items-center space-x-4 mb-4">
                       {selectedMovie.year && <span>{selectedMovie.year}</span>}
@@ -321,13 +334,6 @@ const Movies = () => {
                     </div>
                     <p className="text-gray-300 mb-6">{selectedMovie.description}</p>
                     <div className="flex space-x-4">
-                      <Button 
-                        className="bg-red-600 hover:bg-red-700 flex-1"
-                        onClick={() => window.open(selectedMovie.stream_url, '_blank')}
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Assistir Agora
-                      </Button>
                       <Button
                         variant="outline"
                         onClick={() => handleAddToFavorites(selectedMovie.id)}
