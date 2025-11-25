@@ -26,6 +26,8 @@ export const useContent = () => {
     if (!user) return;
 
     try {
+      console.log('Fetching content for user:', user.id);
+      
       const { data, error } = await supabase
         .from('content')
         .select(`
@@ -35,7 +37,14 @@ export const useContent = () => {
         .eq('m3u_lists.user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching content:', error);
+        throw error;
+      }
+      
+      console.log('Content fetched:', data?.length || 0, 'items');
+      console.log('Content types:', data?.map(item => ({ id: item.id, title: item.title, type: item.type, genre: item.genre })));
+      
       setContent(data || []);
     } catch (error) {
       console.error('Error fetching content:', error);
@@ -91,7 +100,9 @@ export const useContent = () => {
   };
 
   const getContentByType = (type: 'movie' | 'series' | 'live') => {
-    return content.filter(item => item.type === type);
+    const filtered = content.filter(item => item.type === type);
+    console.log(`getContentByType(${type}):`, filtered.length, 'items');
+    return filtered;
   };
 
   const getFavoritesContent = () => {
@@ -118,10 +129,12 @@ export const useContent = () => {
   };
 
   const getLiveChannelsByCategory = (category: string) => {
-    return content.filter(item => 
+    const filtered = content.filter(item => 
       item.type === 'live' && 
       item.genre?.toLowerCase().includes(category.toLowerCase())
     );
+    console.log(`getLiveChannelsByCategory(${category}):`, filtered.length, 'items');
+    return filtered;
   };
 
   // Funções para obter conteúdo destacado

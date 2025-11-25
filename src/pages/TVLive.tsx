@@ -27,8 +27,13 @@ const TVLive = () => {
 
   const liveChannels = getContentByType('live');
   
+  console.log('TVLive - Total content:', content.length);
+  console.log('TVLive - Live channels:', liveChannels.length);
+  console.log('TVLive - All content types:', content.map(item => ({ id: item.id, title: item.title, type: item.type })));
+  
   // Obter categorias únicas dos canais
   const categories = [...new Set(liveChannels.map(channel => channel.genre).filter(Boolean))];
+  console.log('TVLive - Categories:', categories);
 
   // Filtrar canais por categoria
   const getFilteredChannels = () => {
@@ -39,6 +44,7 @@ const TVLive = () => {
   };
 
   const filteredChannels = getFilteredChannels();
+  console.log('TVLive - Filtered channels:', filteredChannels.length);
 
   const handleMenuToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -115,12 +121,23 @@ const TVLive = () => {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg"
               >
-                <option value="all">Todas as Categorias</option>
+                <option value="all">Todas as Categorias ({liveChannels.length} canais)</option>
                 {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                  <option key={category} value={category}>
+                    {category} ({getLiveChannelsByCategory(category).length})
+                  </option>
                 ))}
               </select>
             </div>
+          </div>
+          
+          {/* Debug Info */}
+          <div className="mb-4 p-4 bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-400">Debug Info:</p>
+            <p className="text-sm">Total de conteúdo: {content.length}</p>
+            <p className="text-sm">Canais ao vivo: {liveChannels.length}</p>
+            <p className="text-sm">Categorias: {categories.join(', ')}</p>
+            <p className="text-sm">Canais filtrados: {filteredChannels.length}</p>
           </div>
           
           <div className="grid lg:grid-cols-3 gap-8">
@@ -145,6 +162,11 @@ const TVLive = () => {
                           <Tv className="h-12 w-12 text-gray-400" />
                         </div>
                         <p className="text-gray-400">Selecione um canal para assistir</p>
+                        {liveChannels.length === 0 && (
+                          <p className="text-sm text-gray-500 mt-2">
+                            Nenhum canal ao vivo encontrado. Verifique se sua lista M3U foi atualizada.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -209,7 +231,7 @@ const TVLive = () => {
                       <p className="text-sm text-gray-500 mt-2">
                         {selectedCategory !== 'all' 
                           ? `Nenhum canal na categoria "${selectedCategory}"` 
-                          : 'Verifique se sua lista M3U foi atualizada'
+                          : 'Verifique se sua lista M3U foi atualizada e contém canais ao vivo'
                         }
                       </p>
                     </div>
