@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Plus, Play, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Play, Info, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ContentItem {
@@ -16,9 +16,17 @@ interface ContentCarouselProps {
   title: string;
   items: ContentItem[];
   showAddButton?: boolean;
+  onAddToFavorites?: (contentId: string) => void;
+  isFavorite?: (contentId: string) => boolean;
 }
 
-export const ContentCarousel = ({ title, items, showAddButton = true }: ContentCarouselProps) => {
+export const ContentCarousel = ({ 
+  title, 
+  items, 
+  showAddButton = true,
+  onAddToFavorites,
+  isFavorite
+}: ContentCarouselProps) => {
   const scrollContainer = React.useRef<HTMLDivElement>(null);
 
   const scroll = (direction: 'left' | 'right') => {
@@ -33,6 +41,12 @@ export const ContentCarousel = ({ title, items, showAddButton = true }: ContentC
         left: newScroll,
         behavior: 'smooth'
       });
+    }
+  };
+
+  const handleAddToFavorites = (contentId: string) => {
+    if (onAddToFavorites) {
+      onAddToFavorites(contentId);
     }
   };
 
@@ -91,8 +105,21 @@ export const ContentCarousel = ({ title, items, showAddButton = true }: ContentC
                         Assistir
                       </Button>
                       {showAddButton && (
-                        <Button size="sm" variant="outline" className="border-white text-white hover:bg-white hover:text-black">
-                          <Plus className="h-3 w-3" />
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className={`${
+                            isFavorite && isFavorite(item.id)
+                              ? 'bg-red-600 text-white border-red-600' 
+                              : 'border-white text-white hover:bg-white hover:text-black'
+                          }`}
+                          onClick={() => handleAddToFavorites(item.id)}
+                        >
+                          {isFavorite && isFavorite(item.id) ? (
+                            <Heart className="h-3 w-3 fill-current" />
+                          ) : (
+                            <Plus className="h-3 w-3" />
+                          )}
                         </Button>
                       )}
                     </div>

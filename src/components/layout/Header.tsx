@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LeaoLiveLogo } from '@/components/ui/logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Menu, X, User, Settings } from 'lucide-react';
+import { Search, Menu, X, User, Settings, LogOut } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { showSuccess } from '@/utils/toast';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -12,7 +15,17 @@ interface HeaderProps {
 
 export const Header = ({ onMenuToggle, onSearchClick }: HeaderProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    showSuccess('Logout realizado com sucesso!');
+    navigate('/login');
+    setIsUserMenuOpen(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 to-transparent">
@@ -37,7 +50,7 @@ export const Header = ({ onMenuToggle, onSearchClick }: HeaderProps) => {
               <a href="#" className="text-white hover:text-gray-300 transition-colors">Séries</a>
               <a href="#" className="text-white hover:text-gray-300 transition-colors">EPG</a>
               <a href="#" className="text-white hover:text-gray-300 transition-colors font-semibold">Meus Lions</a>
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">Gerenciar Listas</a>
+              <a href="/m3u-management" className="text-white hover:text-gray-300 transition-colors">Gerenciar Listas</a>
             </nav>
           )}
 
@@ -54,13 +67,44 @@ export const Header = ({ onMenuToggle, onSearchClick }: HeaderProps) => {
               <Search className="h-5 w-5" />
             </Button>
             
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/10"
-            >
-              <User className="h-5 w-5" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="text-white hover:bg-white/10"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              
+              {isUserMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-gray-800 rounded-md shadow-lg">
+                  <div className="p-3 border-b border-gray-800">
+                    <p className="text-sm text-white font-medium">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <div className="py-1">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-white hover:bg-white/10"
+                      onClick={() => navigate('/m3u-management')}
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      Configurações
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-white hover:bg-white/10"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
