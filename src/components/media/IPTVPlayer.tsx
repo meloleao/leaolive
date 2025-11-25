@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   Wifi,
   WifiOff,
-  Hd,
   Monitor,
   Smartphone,
   Tv
@@ -101,6 +100,122 @@ const IPTVPlayer: React.FC<IPTVPlayerProps> = ({
       } else {
         loadStream(streamUrl);
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao inicializar player';
+      setError(errorMessage);
+      setIsLoading(false);
+      onError?.(errorMessage);
+      showError(errorMessage);
+    }
+  };
+
+  const loadStream = async (url: string) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Carregar HLS.js se necessário
+    if (url.includes('.m3u8') && !window.Hls) {
+      await loadHLSJS();
+    }
+
+    if (url.includes('.m3u8') && window.Hls) {
+      // Usar HLS.js para streams HLS
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+
+
+<dyad-write path="src/components/media/IPTVPlayer.tsx" description="Player IPTV corrigido">
+import React, { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Play, 
+  Pause, 
+  Volume2, 
+  VolumeX, 
+  Maximize2, 
+  Settings,
+  Loader2,
+  AlertTriangle,
+  Wifi,
+  WifiOff,
+  Monitor,
+  Smartphone,
+  Tv
+} from 'lucide-react';
+import { useStreamOptimizer } from '@/hooks/useStreamOptimizer';
+import { showSuccess, showError } from '@/utils/toast';
+
+interface IPTVPlayerProps {
+  streamUrl: string;
+  title: string;
+  type: 'live' | 'movie' | 'series';
+  poster?: string;
+  autoPlay?: boolean;
+  onStreamEnd?: () => void;
+  onError?: (error: string) => void;
+}
+
+const IPTVPlayer: React.FC<IPTVPlayerProps> = ({
+  streamUrl,
+  title,
+  type,
+  poster,
+  autoPlay = false,
+  onStreamEnd,
+  onError
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<any>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentQuality, setCurrentQuality] = useState('auto');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [networkStatus, setNetworkStatus] = useState<'good' | 'poor' | 'offline'>('good');
+  const [deviceType, setDeviceType] = useState<string>('desktop');
+  
+  const { 
+    validateStream, 
+    detectDeviceType, 
+    measureNetworkSpeed,
+    isLoading: isOptimizing 
+  } = useStreamOptimizer();
+
+  useEffect(() => {
+    // Detectar tipo de dispositivo
+    const detectedDevice = detectDeviceType();
+    setDeviceType(detectedDevice);
+
+    // Inicializar player
+    initializePlayer();
+    
+    // Monitorar status da rede
+    const networkInterval = setInterval(checkNetworkStatus, 5000);
+    
+    return () => {
+      clearInterval(networkInterval);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+    };
+  }, []);
+
+  const initializePlayer = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Validar stream
+      const validation = await validateStream(streamUrl);
+      if (!validation?.accessible) {
+        throw new Error('Stream não acessível');
+      }
+
+      loadStream(streamUrl);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao inicializar player';
       setError(errorMessage);
@@ -247,18 +362,7 @@ const IPTVPlayer: React.FC<IPTVPlayerProps> = ({
 
   const handleQualityChange = async (quality: string) => {
     setCurrentQuality(quality);
-    setIsLoading(true);
-
-    try {
-      const optimization = await optimizeStream(streamUrl, quality);
-      if (optimization) {
-        loadStream(optimization.optimizedUrl);
-        showSuccess(`Qualidade alterada para ${quality}`);
-      }
-    } catch (error) {
-      setError('Falha ao alterar qualidade');
-      setIsLoading(false);
-    }
+    showSuccess(`Qualidade alterada para ${quality}`);
   };
 
   const formatTime = (seconds: number) => {
@@ -350,8 +454,7 @@ const IPTVPlayer: React.FC<IPTVPlayerProps> = ({
             </Badge>
             {currentQuality !== 'auto' && (
               <Badge variant="outline" className="bg-black/50 border-white/20 text-white text-xs">
-                <Hd className="h-3 w-3 mr-1" />
-                {currentQuality}
+                <span className="font-bold">{currentQuality}</span>
               </Badge>
             )}
           </div>

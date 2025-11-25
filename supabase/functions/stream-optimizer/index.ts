@@ -150,6 +150,7 @@ async function validateStream(streamUrl: string): Promise<any> {
       error: error.message
     }
   }
+}
 
 async function generateOptimizedPlaylist(streamUrl: string, contentId: string, quality: string): Promise<string> {
   const config = await optimizeStream(streamUrl, quality)
