@@ -7,14 +7,30 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { listId, url } = await req.json()
+    console.log('Processing M3U request...')
+    
+    // Parse request body
+    let body
+    try {
+      body = await req.json()
+    } catch (error) {
+      console.error('Error parsing request body:', error)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { listId, url } = body
     
     if (!listId || !url) {
+      console.error('Missing required parameters:', { listId, url })
       return new Response(
         JSON.stringify({ error: 'listId and url are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -23,35 +39,106 @@ serve(async (req) => {
 
     console.log(`Processing M3U list ${listId} from URL: ${url}`)
 
-    // Buscar o conteúdo M3U
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    })
+    // Validate URL format
+    try {
+      new URL(url)
+    } catch (error) {
+      console.error('Invalid URL format:', url)
+      return new Response(
+        JSON.stringify({ error: 'Invalid URL format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Fetch M3U content with timeout
+    let response
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        },
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+    } catch (error) {
+      console.error('Error fetching M3U:', error)
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch M3U: ${error.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch M3U: ${response.status} ${response.statusText}`)
+      console.error(`HTTP error: ${response.status} ${response.statusText}`)
+      return new Response(
+        JSON.stringify({ error: `HTTP ${response.status}: ${response.statusText}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
     
-    const m3uContent = await response.text()
+    let m3uContent
+    try {
+      m3uContent = await response.text()
+    } catch (error) {
+      console.error('Error reading response text:', error)
+      return new Response(
+        JSON.stringify({ error: 'Failed to read M3U content' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     console.log(`M3U content length: ${m3uContent.length} characters`)
     
-    if (!m3uContent || !m3uContent.startsWith('#EXTM3U')) {
-      throw new Error('Invalid M3U format')
+    if (!m3uContent || !m3uContent.trim().startsWith('#EXTM3U')) {
+      console.error('Invalid M3U format - content:', m3uContent.substring(0, 200))
+      return new Response(
+        JSON.stringify({ error: 'Invalid M3U format - must start with #EXTM3U' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
     
-    // Processar o conteúdo M3U
-    const parsedContent = parseM3U(m3uContent)
+    // Parse M3U content
+    let parsedContent
+    try {
+      parsedContent = parseM3U(m3uContent)
+    } catch (error) {
+      console.error('Error parsing M3U:', error)
+      return new Response(
+        JSON.stringify({ error: `Failed to parse M3U: ${error.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     console.log(`Parsed ${parsedContent.length} items from M3U`)
     
-    // Conectar ao Supabase
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    if (parsedContent.length === 0) {
+      console.warn('No items found in M3U content')
+      return new Response(
+        JSON.stringify({ error: 'No valid items found in M3U file' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Connect to Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables')
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey)
     
-    // Limpar conteúdo antigo
+    // Clear old content
     console.log('Clearing old content...')
     const { error: deleteError } = await supabase
       .from('content')
@@ -60,50 +147,67 @@ serve(async (req) => {
     
     if (deleteError) {
       console.error('Error deleting old content:', deleteError)
-      throw deleteError
+      return new Response(
+        JSON.stringify({ error: `Failed to clear old content: ${deleteError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
     
-    // Inserir novo conteúdo
+    // Insert new content in batches
     let channelCount = 0
     let movieCount = 0
     let seriesCount = 0
     let successCount = 0
+    let errorCount = 0
     
     console.log('Inserting new content...')
     
-    for (const item of parsedContent) {
-      try {
-        const { data, error } = await supabase
-          .from('content')
-          .insert({
-            m3u_list_id: listId,
-            title: item.title || 'Unknown',
-            thumbnail: item.logo || item.tvgLogo || '/api/placeholder/200/300',
-            genre: item.groupTitle || 'Sem categoria',
-            stream_url: item.url,
-            type: item.type,
-            description: item.description || `${item.type === 'live' ? 'Canal ao vivo' : item.type === 'movie' ? 'Filme' : 'Série'}: ${item.title}`,
-            year: item.year ? parseInt(item.year) : null,
-            rating: item.rating || 'L',
-            duration: item.duration || (item.type === 'movie' ? '2h' : '50min')
-          })
-        
-        if (!error) {
-          successCount++
-          if (item.type === 'live') channelCount++
-          else if (item.type === 'movie') movieCount++
-          else if (item.type === 'series') seriesCount++
-        } else {
-          console.error('Error inserting item:', error)
+    // Process in batches of 50 to avoid timeouts
+    const batchSize = 50
+    for (let i = 0; i < parsedContent.length; i += batchSize) {
+      const batch = parsedContent.slice(i, i + batchSize)
+      
+      for (const item of batch) {
+        try {
+          const { data, error } = await supabase
+            .from('content')
+            .insert({
+              m3u_list_id: listId,
+              title: item.title || 'Unknown',
+              thumbnail: item.logo || item.tvgLogo || '/api/placeholder/200/300',
+              genre: item.groupTitle || 'Sem categoria',
+              stream_url: item.url,
+              type: item.type,
+              description: item.description || `${item.type === 'live' ? 'Canal ao vivo' : item.type === 'movie' ? 'Filme' : 'Série'}: ${item.title}`,
+              year: item.year ? parseInt(item.year) : null,
+              rating: item.rating || 'L',
+              duration: item.duration || (item.type === 'movie' ? '2h' : '50min')
+            })
+          
+          if (!error) {
+            successCount++
+            if (item.type === 'live') channelCount++
+            else if (item.type === 'movie') movieCount++
+            else if (item.type === 'series') seriesCount++
+          } else {
+            console.error('Error inserting item:', error)
+            errorCount++
+          }
+        } catch (error) {
+          console.error('Error processing item:', error)
+          errorCount++
         }
-      } catch (error) {
-        console.error('Error processing item:', error)
+      }
+      
+      // Small delay between batches to avoid overwhelming the database
+      if (i + batchSize < parsedContent.length) {
+        await new Promise(resolve => setTimeout(resolve, 100))
       }
     }
     
-    console.log(`Successfully inserted ${successCount} items`)
+    console.log(`Successfully inserted ${successCount} items, ${errorCount} errors`)
     
-    // Atualizar a lista com as contagens
+    // Update the list with counts
     const { error: updateError } = await supabase
       .from('m3u_lists')
       .update({
@@ -117,7 +221,10 @@ serve(async (req) => {
     
     if (updateError) {
       console.error('Error updating list:', updateError)
-      throw updateError
+      return new Response(
+        JSON.stringify({ error: `Failed to update list: ${updateError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
     
     console.log(`List updated successfully: ${channelCount} channels, ${movieCount} movies, ${seriesCount} series`)
@@ -129,17 +236,18 @@ serve(async (req) => {
         movieCount, 
         seriesCount,
         totalItems: parsedContent.length,
-        successCount
+        successCount,
+        errorCount
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
     
   } catch (error) {
-    console.error('Error processing M3U:', error)
+    console.error('Unexpected error in process-m3u:', error)
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Unknown error occurred',
-        details: error.toString()
+        error: 'Unexpected error occurred',
+        details: error.message || error.toString()
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -157,7 +265,7 @@ function parseM3U(content: string) {
     if (line.startsWith('#EXTINF:')) {
       currentItem = {}
       
-      // Extrair informações do EXTINF
+      // Extract information from EXTINF
       const infMatch = line.match(/#EXTINF:-?([^,]+),(.+)/)
       if (infMatch) {
         const attributes = infMatch[1]
@@ -165,30 +273,30 @@ function parseM3U(content: string) {
         
         currentItem.title = title
         
-        // Extrair atributos
+        // Extract attributes
         const attrRegex = /(\w+)="([^"]*)"/g
         let match
         while ((match = attrRegex.exec(attributes)) !== null) {
           currentItem[match[1]] = match[2]
         }
         
-        // Extrair tvg-logo
+        // Extract tvg-logo
         const logoMatch = line.match(/tvg-logo="([^"]*)"/)
         if (logoMatch) {
           currentItem.tvgLogo = logoMatch[1]
         }
         
-        // Extrair group-title
+        // Extract group-title
         const groupMatch = line.match(/group-title="([^"]*)"/)
         if (groupMatch) {
           currentItem.groupTitle = groupMatch[1]
         }
       }
     } else if (line && !line.startsWith('#') && currentItem) {
-      // Esta é a URL do stream
+      // This is the stream URL
       currentItem.url = line
       
-      // Determinar o tipo baseado no título e categoria
+      // Determine type based on title and category
       const title = (currentItem.title || '').toLowerCase()
       const group = (currentItem.groupTitle || '').toLowerCase()
       
@@ -208,7 +316,7 @@ function parseM3U(content: string) {
                  title.includes('temp')) {
         currentItem.type = 'series'
       } else {
-        // Heurística adicional
+        // Additional heuristics
         if (title.includes('season') || title.includes('episode') || 
             title.includes('s0') || title.includes('e0')) {
           currentItem.type = 'series'
@@ -219,13 +327,13 @@ function parseM3U(content: string) {
         }
       }
       
-      // Extrair ano se presente no título
+      // Extract year if present in title
       const yearMatch = title.match(/\b(19|20)\d{2}\b/)
       if (yearMatch) {
         currentItem.year = yearMatch[0]
       }
       
-      // Extrair classificação indicativa
+      // Extract rating
       if (title.includes('18') || title.includes('+18')) {
         currentItem.rating = '18'
       } else if (title.includes('16') || title.includes('+16')) {
