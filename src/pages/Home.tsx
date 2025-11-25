@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { FeaturedBanner } from '@/components/content/FeaturedBanner';
+import FeaturedBanner from '@/components/content/FeaturedBanner';
 import { ContentCarousel } from '@/components/content/ContentCarousel';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
