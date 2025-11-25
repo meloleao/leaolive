@@ -133,6 +133,37 @@ export const useM3ULists = () => {
 
       console.log('M3U processed successfully:', categorized);
 
+      // Limpar conteúdo antigo desta lista
+      await supabase
+        .from('content')
+        .delete()
+        .eq('m3u_list_id', id);
+
+      // Inserir novo conteúdo
+      const contentToInsert = items.map((item, index) => ({
+        m3u_list_id: id,
+        title: item.name,
+        thumbnail: item.logo || '/api/placeholder/200/300',
+        year: new Date().getFullYear(),
+        rating: 'L',
+        duration: 'Varia',
+        type: item.type,
+        description: `${item.type === 'live' ? 'Canal ao vivo' : item.type === 'movie' ? 'Filme' : 'Série'} - ${item.group || 'Sem categoria'}`,
+        genre: item.group || 'Geral',
+        stream_url: item.url
+      }));
+
+      if (contentToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from('content')
+          .insert(contentToInsert);
+
+        if (insertError) {
+          console.error('Error inserting content:', insertError);
+          throw insertError;
+        }
+      }
+
       // Atualizar lista com as contagens
       await updateList(id, {
         status: 'active',

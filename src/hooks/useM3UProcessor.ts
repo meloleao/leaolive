@@ -67,18 +67,33 @@ export const useM3UProcessor = () => {
           if (radioMatch) currentItem.radio = radioMatch[1] === 'true';
 
         } else if (line && !line.startsWith('#') && currentItem.name) {
-          // This is the URL line
+          // This is URL line
           currentItem.url = line;
           
-          // Determine type based on name and group
+          // Melhorada a detecção de tipo
           const name = currentItem.name.toLowerCase();
           const group = currentItem.group?.toLowerCase() || '';
           
-          if (name.includes('filme') || name.includes('movie') || group.includes('filme') || group.includes('movie')) {
+          // Prioridade para canais ao vivo
+          if (name.includes('canal') || name.includes('channel') || 
+              name.includes('tv') || name.includes('live') ||
+              group.includes('canal') || group.includes('channel') || 
+              group.includes('tv') || group.includes('live') ||
+              group.includes('ao vivo') || group.includes('notícias') ||
+              group.includes('esportes') || group.includes('news') ||
+              group.includes('sports') || group.includes('entertainment')) {
+            currentItem.type = 'live';
+          } else if (name.includes('filme') || name.includes('movie') || 
+                     name.includes('film') || group.includes('filme') || 
+                     group.includes('movie') || group.includes('film')) {
             currentItem.type = 'movie';
-          } else if (name.includes('série') || name.includes('serie') || name.includes('season') || group.includes('série') || group.includes('serie')) {
+          } else if (name.includes('série') || name.includes('serie') || 
+                     name.includes('season') || name.includes('episódio') ||
+                     name.includes('episode') || group.includes('série') || 
+                     group.includes('serie') || group.includes('season')) {
             currentItem.type = 'series';
           } else {
+            // Se não conseguir identificar, assume que é canal ao vivo (mais comum em M3U)
             currentItem.type = 'live';
           }
 
@@ -88,6 +103,11 @@ export const useM3UProcessor = () => {
       }
 
       console.log(`Parsed ${items.length} items from M3U`);
+      console.log('Types breakdown:', {
+        live: items.filter(item => item.type === 'live').length,
+        movies: items.filter(item => item.type === 'movie').length,
+        series: items.filter(item => item.type === 'series').length
+      });
       return items;
 
     } catch (error) {
