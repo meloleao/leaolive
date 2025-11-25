@@ -105,12 +105,7 @@ export const FeaturedBanner = () => {
               
               <Button 
                 size="lg" 
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-black px-8 py-3"
-                style={{
-                  color: 'white',
-                  borderColor: 'white'
-                }}
+                className="bg-gray-200/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white hover:text-black px-8 py-3"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Adicionar aos Lions
