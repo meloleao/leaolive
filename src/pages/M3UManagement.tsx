@@ -92,6 +92,7 @@ const M3UManagement = () => {
       setIsAddDialogOpen(false);
       showSuccess('Lista M3U adicionada com sucesso!');
     } catch (error) {
+      console.error('Add list error:', error);
       showError('Erro ao adicionar lista M3U');
     }
   };
@@ -101,6 +102,7 @@ const M3UManagement = () => {
       await toggleListStatus(id);
       showSuccess('Status da lista atualizado!');
     } catch (error) {
+      console.error('Toggle status error:', error);
       showError('Erro ao atualizar status da lista');
     }
   };
@@ -108,7 +110,9 @@ const M3UManagement = () => {
   const handleRefresh = async (id: string) => {
     setIsRefreshing(id);
     try {
+      console.log('Starting refresh for list:', id);
       const result = await refreshList(id);
+      
       console.log('Refresh result:', result);
       
       if (result && result.success) {
@@ -123,7 +127,8 @@ const M3UManagement = () => {
       }
     } catch (error) {
       console.error('Refresh error:', error);
-      showError(`Erro ao atualizar lista: ${error.message || 'Erro desconhecido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      showError(`Erro ao atualizar lista: ${errorMessage}`);
     } finally {
       setIsRefreshing(null);
     }
@@ -138,6 +143,7 @@ const M3UManagement = () => {
       await deleteList(id);
       showSuccess('Lista removida com sucesso!');
     } catch (error) {
+      console.error('Delete error:', error);
       showError('Erro ao remover lista');
     }
   };

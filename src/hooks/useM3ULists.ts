@@ -127,24 +127,51 @@ export const useM3ULists = () => {
 
       // Chamar edge function para processar M3U
       const { data, error } = await supabase.functions.invoke('process-m3u', {
-        body: { listId: id, url: list.url }
+        body: { 
+          listId: id, 
+          url: list.url 
+        }
       });
 
+      console.log('Function response:', { data, error });
+
       if (error) {
-        console.error('Function error:', error);
-        throw new Error(error.message || 'Failed to process M3U list');
+        console.error('Function error details:', error);
+        throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
       }
 
-      console.log('Function response:', data);
+      if (!data) {
+        throw new Error('No response from Edge Function');
+      }
 
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      console.log('Function success:', data);
+      
       // Atualizar a lista local com os novos dados
       await fetchLists();
       
       return data;
     } catch (error) {
       console.error('Error refreshing M3U list:', error);
+      
+      // Atualizar status para erro
       await updateList(id, { status: 'error' });
-      throw error;
+      
+      // Propagar erro com mensagem mais clara
+      if (error.message.includes('Edge Function')) {
+        throw new Error('Erro na função de processamento. Verifique o console para detalhes.');
+      } else if (error.message.includes('Failed to fetch')) {
+        throw new Error('Não foi possível acessar a URL da lista M3U. Verifique se a URL está correta e acessível.');
+      } else if (error.message.includes('Invalid M3U format')) {
+        throw new Error('O arquivo M3U não está em um formato válido.');
+      } else if (error.message.includes('No valid items')) {
+        throw new Error('Nenhum item válido encontrado no arquivo M3U.');
+      } else {
+        throw error;
+      }
     }
   };
 
