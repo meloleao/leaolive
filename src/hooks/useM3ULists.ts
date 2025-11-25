@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useM3UProcessor } from './useM3UProcessor';
 
 interface M3UList {
   id: string;
@@ -19,6 +20,7 @@ export const useM3ULists = () => {
   const [lists, setLists] = useState<M3UList[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { parseM3U, categorizeItems } = useM3UProcessor();
 
   const fetchLists = async () => {
     if (!user) return;
@@ -35,18 +37,6 @@ export const useM3ULists = () => {
       console.error('Error fetching M3U lists:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const testFunction = async () => {
-    try {
-      console.log('Testing function...');
-      const { data, error } = await supabase.functions.invoke('test-m3u');
-      console.log('Test result:', { data, error });
-      return { data, error };
-    } catch (error) {
-      console.error('Test error:', error);
-      return { data: null, error };
     }
   };
 
@@ -135,54 +125,54 @@ export const useM3ULists = () => {
       // Atualizar status para processando
       await updateList(id, { status: 'inactive' });
 
-      console.log(`Refreshing list ${id} from URL: ${list.url}`);
+      console.log(`Processing M3U list ${id} from URL: ${list.url}`);
 
-      // Chamar edge function para processar M3U
-      const { data, error } = await supabase.functions.invoke('process-m3u', {
-        body: { 
-          listId: id, 
-          url: list.url 
-        }
+      // Processar M3U no frontend
+      const items = await parseM3U(list.url);
+      const categorized = categorizeItems(items);
+
+      console.log('M3U processed successfully:', categorized);
+
+      // Atualizar lista com as contagens
+      await updateList(id, {
+        status: 'active',
+        channel_count: categorized.live.length,
+        movie_count: categorized.movies.length,
+        series_count: categorized.series.length,
+        last_updated: new Date().toISOString()
       });
 
-      console.log('Function response:', { data, error });
+      return {
+        success: true,
+        itemCount: categorized.total,
+        channelCount: categorized.live.length,
+        movieCount: categorized.movies.length,
+        seriesCount: categorized.series.length
+      };
 
-      if (error) {
-        console.error('Function error details:', error);
-        throw new Error(`Edge Function error: ${error.message || 'Unknown error'}`);
-      }
-
-      if (!data) {
-        throw new Error('No response from Edge Function');
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      console.log('Function success:', data);
-      
-      // Atualizar a lista local com os novos dados
-      await fetchLists();
-      
-      return data;
     } catch (error) {
-      console.error('Error refreshing M3U list:', error);
+      console.error('Error processing M3U list:', error);
       
       // Atualizar status para erro
       await updateList(id, { status: 'error' });
       
-      // Propagar erro com mensagem mais clara
-      if (error.message.includes('Edge Function')) {
-        throw new Error('Erro na função de processamento. Verifique o console para detalhes.');
-      } else if (error.message.includes('Failed to fetch')) {
-        throw new Error('Não foi possível acessar a URL da lista M3U. Verifique se a URL está correta e acessível.');
-      } else if (error.message.includes('Invalid M3U format')) {
-        throw new Error('O arquivo M3U não está em um formato válido.');
-      } else if (error.message.includes('No valid items')) {
-        throw new Error('Nenhum item válido encontrado no arquivo M3U.');
+      // Propagar erro com mensagem clara
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('Não foi possível acessar a URL da lista M3U. Verifique se a URL está correta e acessível.');
+        } else if (error.message.includes('Invalid M3U format')) {
+          throw new Error('O arquivo M3U não está em um formato válido.');
+        } else if (error.message.includes('HTTP 404')) {
+          throw new Error('URL não encontrada (404). Verifique se a URL está correta.');
+        } else if (error.message.includes('HTTP 403')) {
+          throw new Error('Acesso negado (403). Verifique se a URL requer autenticação.');
+        } else if (error.message.includes('HTTP 5')) {
+          throw new Error('Erro no servidor da URL. Tente novamente mais tarde.');
+        } else {
+          throw new Error(`Erro ao processar M3U: ${error.message}`);
+        }
       } else {
-        throw error;
+        throw new Error('Erro desconhecido ao processar a lista M3U.');
       }
     }
   };
@@ -200,7 +190,6 @@ export const useM3ULists = () => {
     lists,
     loading,
     fetchLists,
-    testFunction,
     addList,
     updateList,
     deleteList,

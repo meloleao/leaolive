@@ -17,8 +17,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Link,
-  Bug
+  Link
 } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -30,30 +29,12 @@ const M3UManagement = () => {
   const [newListName, setNewListName] = useState('');
   const [newListUrl, setNewListUrl] = useState('');
   const [isRefreshing, setIsRefreshing] = useState<string | null>(null);
-  const [isTesting, setIsTesting] = useState(false);
   const isMobile = useIsMobile();
   
-  const { lists, loading, testFunction, addList, deleteList, toggleListStatus, refreshList } = useM3ULists();
+  const { lists, loading, addList, deleteList, toggleListStatus, refreshList } = useM3ULists();
 
   const handleMenuToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const handleTestFunction = async () => {
-    setIsTesting(true);
-    try {
-      const result = await testFunction();
-      if (result.error) {
-        showError(`Erro no teste: ${result.error.message}`);
-      } else {
-        showSuccess('Função de teste funcionando!');
-        console.log('Test result:', result.data);
-      }
-    } catch (error) {
-      showError('Erro ao testar função');
-    } finally {
-      setIsTesting(false);
-    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -201,62 +182,50 @@ const M3UManagement = () => {
               </p>
             </div>
             
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={handleTestFunction}
-                disabled={isTesting}
-                className="border-gray-600 text-gray-300"
-              >
-                <Bug className="mr-2 h-4 w-4" />
-                {isTesting ? 'Testando...' : 'Testar Função'}
-              </Button>
-              
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-red-600 hover:bg-red-700">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionar Nova Lista
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-gray-900 border-gray-800 text-white">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Nova Lista M3U</DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      Insira os dados da sua lista M3U para adicionar ao Leão Live
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="name">Nome da Lista</Label>
-                      <Input
-                        id="name"
-                        placeholder="Ex: Lista Premium Brasil"
-                        value={newListName}
-                        onChange={(e) => setNewListName(e.target.value)}
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="url">URL da Lista M3U</Label>
-                      <Input
-                        id="url"
-                        placeholder="https://example.com/lista.m3u"
-                        value={newListUrl}
-                        onChange={(e) => setNewListUrl(e.target.value)}
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <Button 
-                      onClick={handleAddList}
-                      className="w-full bg-red-600 hover:bg-red-700"
-                    >
-                      Adicionar Lista
-                    </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-red-600 hover:bg-red-700">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Nova Lista
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                <DialogHeader>
+                  <DialogTitle>Adicionar Nova Lista M3U</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Insira os dados da sua lista M3U para adicionar ao Leão Live
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Nome da Lista</Label>
+                    <Input
+                      id="name"
+                      placeholder="Ex: Lista Premium Brasil"
+                      value={newListName}
+                      onChange={(e) => setNewListName(e.target.value)}
+                      className="bg-gray-800 border-gray-700"
+                    />
                   </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                  <div>
+                    <Label htmlFor="url">URL da Lista M3U</Label>
+                    <Input
+                      id="url"
+                      placeholder="https://example.com/lista.m3u"
+                      value={newListUrl}
+                      onChange={(e) => setNewListUrl(e.target.value)}
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleAddList}
+                    className="w-full bg-red-600 hover:bg-red-700"
+                  >
+                    Adicionar Lista
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {lists.length === 0 ? (
