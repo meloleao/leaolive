@@ -13,16 +13,18 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Processing M3U request...')
+    console.log('=== Starting M3U Processing ===')
     
     // Parse request body
     let body
     try {
-      body = await req.json()
+      const text = await req.text()
+      console.log('Request body text:', text)
+      body = JSON.parse(text)
     } catch (error) {
       console.error('Error parsing request body:', error)
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        JSON.stringify({ error: 'Invalid JSON in request body', details: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -43,9 +45,9 @@ serve(async (req) => {
     try {
       new URL(url)
     } catch (error) {
-      console.error('Invalid URL format:', url)
+      console.error('Invalid URL format:', url, error)
       return new Response(
-        JSON.stringify({ error: 'Invalid URL format' }),
+        JSON.stringify({ error: 'Invalid URL format', details: error.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -53,18 +55,25 @@ serve(async (req) => {
     // Fetch M3U content with timeout
     let response
     try {
+      console.log('Fetching M3U content...')
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
       
       response = await fetch(url, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': '*/*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
         },
         signal: controller.signal
       })
       
       clearTimeout(timeoutId)
+      console.log('Response status:', response.status, response.statusText)
     } catch (error) {
       console.error('Error fetching M3U:', error)
       return new Response(
@@ -83,16 +92,17 @@ serve(async (req) => {
     
     let m3uContent
     try {
+      console.log('Reading response text...')
       m3uContent = await response.text()
+      console.log(`M3U content length: ${m3uContent.length} characters`)
+      console.log('First 200 chars:', m3uContent.substring(0, 200))
     } catch (error) {
       console.error('Error reading response text:', error)
       return new Response(
-        JSON.stringify({ error: 'Failed to read M3U content' }),
+        JSON.stringify({ error: 'Failed to read M3U content', details: error.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-    
-    console.log(`M3U content length: ${m3uContent.length} characters`)
     
     if (!m3uContent || !m3uContent.trim().startsWith('#EXTM3U')) {
       console.error('Invalid M3U format - content:', m3uContent.substring(0, 200))
@@ -105,7 +115,9 @@ serve(async (req) => {
     // Parse M3U content
     let parsedContent
     try {
+      console.log('Parsing M3U content...')
       parsedContent = parseM3U(m3uContent)
+      console.log(`Parsed ${parsedContent.length} items from M3U`)
     } catch (error) {
       console.error('Error parsing M3U:', error)
       return new Response(
@@ -113,8 +125,6 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-    
-    console.log(`Parsed ${parsedContent.length} items from M3U`)
     
     if (parsedContent.length === 0) {
       console.warn('No items found in M3U content')
@@ -136,6 +146,7 @@ serve(async (req) => {
       )
     }
     
+    console.log('Connecting to Supabase...')
     const supabase = createClient(supabaseUrl, supabaseKey)
     
     // Clear old content
@@ -166,6 +177,7 @@ serve(async (req) => {
     const batchSize = 50
     for (let i = 0; i < parsedContent.length; i += batchSize) {
       const batch = parsedContent.slice(i, i + batchSize)
+      console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(parsedContent.length/batchSize)} with ${batch.length} items`)
       
       for (const item of batch) {
         try {
@@ -207,7 +219,8 @@ serve(async (req) => {
     
     console.log(`Successfully inserted ${successCount} items, ${errorCount} errors`)
     
-    // Update the list with counts
+    // Update list with counts
+    console.log('Updating list with counts...')
     const { error: updateError } = await supabase
       .from('m3u_lists')
       .update({
@@ -229,25 +242,30 @@ serve(async (req) => {
     
     console.log(`List updated successfully: ${channelCount} channels, ${movieCount} movies, ${seriesCount} series`)
     
+    const result = { 
+      success: true, 
+      channelCount, 
+      movieCount, 
+      seriesCount,
+      totalItems: parsedContent.length,
+      successCount,
+      errorCount
+    }
+    
+    console.log('=== M3U Processing Complete ===', result)
+    
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        channelCount, 
-        movieCount, 
-        seriesCount,
-        totalItems: parsedContent.length,
-        successCount,
-        errorCount
-      }),
+      JSON.stringify(result),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
     
   } catch (error) {
-    console.error('Unexpected error in process-m3u:', error)
+    console.error('=== UNEXPECTED ERROR in process-m3u ===', error)
     return new Response(
       JSON.stringify({ 
         error: 'Unexpected error occurred',
-        details: error.message || error.toString()
+        details: error.message || error.toString(),
+        stack: error.stack
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
