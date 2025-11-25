@@ -5,17 +5,6 @@ import { ContentCarousel } from '@/components/content/ContentCarousel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge }
-
-
-<dyad-write path="src/pages/Series.tsx" description="Página de Séries com conteúdo real">
-import React, { useState } from 'react';
-import { Header } from '@/components/layout/Header';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { ContentCarousel } from '@/components/content/ContentCarousel';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, Filter, Grid, List, Play, Heart, Info } from 'lucide-react';

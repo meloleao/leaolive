@@ -6,17 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Heart, Play, Info, Grid, List, Clock } from 'lucide-react';
+import { Search, Heart, Play, Info, Grid, List, Clock, Tv } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useContent } from '@/hooks/useContent';
+import { useM3ULists } from '@/hooks/useM3ULists';
 import { showSuccess, showError } from '@/utils/toast';
 
 const MyLions = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedContent, setSelectedContent] = useState<any>(null);
   const isMobile = useIsMobile();
   const { content, toggleFavorite, isFavorite, getFavoritesContent } = useContent();
+  const { lists } = useM3ULists();
 
   const favoritesContent = getFavoritesContent();
   
@@ -42,6 +45,36 @@ const MyLions = () => {
       showError('Erro ao remover dos favoritos');
     }
   };
+
+  const handleContentSelect = (content: any) => {
+    setSelectedContent(content);
+  };
+
+  if (lists.length === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <Header onMenuToggle={handleMenuToggle} />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <main className={`pt-20 ${isSidebarOpen && !isMobile ? 'ml-64' : ''}`}>
+          <div className="container mx-auto px-4 md:px-8 py-8">
+            <div className="text-center py-16">
+              <Heart className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold mb-2">Sua lista de Lions está vazia</h2>
+              <p className="text-gray-400 mb-6">
+                Adicione filmes, séries e canais aos seus Lions para acessá-los rapidamente
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/m3u-management'}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Configurar Lista M3U
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -184,7 +217,11 @@ const MyLions = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="border-white text-white hover:bg-white hover:text-black"
+                                className={`${
+                                  isFavorite(item.id)
+                                    ? 'bg-red-600 text-white border-red-600' 
+                                    : 'border-white text-white hover:bg-white hover:text-black'
+                                }`}
                                 onClick={() => handleRemoveFromFavorites(item.id)}
                               >
                                 <Heart className="h-3 w-3 fill-current" />
@@ -215,6 +252,66 @@ const MyLions = () => {
                 </div>
               )}
             </>
+          )}
+
+          {/* Modal de detalhes do conteúdo */}
+          {selectedContent && (
+            <div 
+              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+              onClick={() => setSelectedContent(null)}
+            >
+              <div 
+                className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="md:col-span-1">
+                    <img
+                      src={selectedContent.thumbnail}
+                      alt={selectedContent.title}
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                  <div className="md:col-span-2 p-6">
+                    <h2 className="text-2xl font-bold mb-4">{selectedContent.title}</h2>
+                    <div className="flex items-center space-x-4 mb-4">
+                      {selectedContent.year && <span>{selectedContent.year}</span>}
+                      {selectedContent.rating && (
+                        <Badge variant="outline" className="border-gray-600 text-gray-400">
+                          {selectedContent.rating}
+                        </Badge>
+                      )}
+                      {selectedContent.duration && <span>{selectedContent.duration}</span>}
+                      <Badge variant="outline" className="border-gray-600 text-gray-400">
+                        {selectedContent.type === 'movie' ? 'Filme' : selectedContent.type === 'series' ? 'Série' : 'Ao Vivo'}
+                      </Badge>
+                    </div>
+                    <p className="text-gray-300 mb-6">{selectedContent.description}</p>
+                    <div className="flex space-x-4">
+                      <Button 
+                        className="bg-red-600 hover:bg-red-700 flex-1"
+                        onClick={() => window.open(selectedContent.stream_url, '_blank')}
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Assistir Agora
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleRemoveFromFavorites(selectedContent.id)}
+                        className={`${
+                          isFavorite(selectedContent.id)
+                            ? 'bg-red-600 text-white border-red-600' 
+                            : 'border-white text-white hover:bg-white hover:text-black'
+                        }`}
+                      >
+                        <Heart className={`mr-2 h-4 w-4 ${isFavorite(selectedContent.id) ? 'fill-current' : ''}`} />
+                        {isFavorite(selectedContent.id) ? 'Nos Lions' : 'Adicionar aos Lions'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </main>

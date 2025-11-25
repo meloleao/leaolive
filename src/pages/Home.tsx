@@ -3,14 +3,17 @@ import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { FeaturedBanner } from '@/components/content/FeaturedBanner';
 import { ContentCarousel } from '@/components/content/ContentCarousel';
+import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useContent } from '@/hooks/useContent';
+import { useM3ULists } from '@/hooks/useM3ULists';
 import { showSuccess, showError } from '@/utils/toast';
 
 const Home = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { content, favorites, toggleFavorite, isFavorite, loading } = useContent();
+  const { lists } = useM3ULists();
 
   const handleMenuToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -31,13 +34,9 @@ const Home = () => {
     }
   };
 
-  // Dados mockados para demonstração enquanto não há conteúdo real
-  const mockContent = {
-    continueWatching: [
-      { id: '1', title: 'Stranger Things', thumbnail: '/api/placeholder/200/300', year: 2022, rating: '16', duration: '50min', type: 'series' as const },
-      { id: '2', title: 'The Crown', thumbnail: '/api/placeholder/200/300', year: 2022, rating: '14', duration: '1h', type: 'series' as const },
-      { id: '3', title: 'Avatar 2', thumbnail: '/api/placeholder/200/300', year: 2022, rating: '12', duration: '3h 12min', type: 'movie' as const },
-    ],
+  // Dados reais do conteúdo
+  const realContent = {
+    continueWatching: content.slice(0, 6),
     myLions: content.filter(item => isFavorite(item.id)).slice(0, 6),
     trending: content.slice(0, 6),
     movies: content.filter(item => item.type === 'movie').slice(0, 6),
@@ -52,6 +51,31 @@ const Home = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p>Carregando conteúdo...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (lists.length === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <Header onMenuToggle={handleMenuToggle} />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <main className={`pt-20 ${isSidebarOpen && !isMobile ? 'ml-64' : ''}`}>
+          <div className="container mx-auto px-4 md:px-8 py-8">
+            <div className="text-center py-16">
+              <h1 className="text-4xl font-bold mb-4">Bem-vindo ao Leão Live</h1>
+              <p className="text-xl text-gray-400 mb-8">
+                Configure sua primeira lista M3U para começar a assistir
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/m3u-management'}
+                className="bg-red-600 hover:bg-red-700 text-lg px-8 py-3"
+              >
+                Configurar Lista M3U
+              </Button>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -74,41 +98,41 @@ const Home = () => {
         <div className="space-y-8 pb-8">
           <ContentCarousel 
             title="Continuar Assistindo" 
-            items={mockContent.continueWatching}
+            items={realContent.continueWatching}
             showAddButton={false}
           />
           
           <ContentCarousel 
             title="Meus Lions" 
-            items={mockContent.myLions}
+            items={realContent.myLions}
             onAddToFavorites={handleAddToFavorites}
             isFavorite={isFavorite}
           />
           
           <ContentCarousel 
             title="Em Alta na TV" 
-            items={mockContent.trending}
+            items={realContent.trending}
             onAddToFavorites={handleAddToFavorites}
             isFavorite={isFavorite}
           />
           
           <ContentCarousel 
             title="Filmes Populares" 
-            items={mockContent.movies}
+            items={realContent.movies}
             onAddToFavorites={handleAddToFavorites}
             isFavorite={isFavorite}
           />
           
           <ContentCarousel 
             title="Séries Dramáticas" 
-            items={mockContent.series}
+            items={realContent.series}
             onAddToFavorites={handleAddToFavorites}
             isFavorite={isFavorite}
           />
           
           <ContentCarousel 
             title="Canais Ao Vivo" 
-            items={mockContent.live}
+            items={realContent.live}
             showAddButton={false}
           />
         </div>

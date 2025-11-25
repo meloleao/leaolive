@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar, Clock, Tv } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useContent } from '@/hooks/useContent';
+import { useM3ULists } from '@/hooks/useM3ULists';
 
 interface Program {
   id: string;
@@ -33,83 +34,43 @@ const EPG = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const isMobile = useIsMobile();
   const { content } = useContent();
+  const { lists } = useM3ULists();
 
-  // Dados mockados para demonstração
-  const mockChannels: Channel[] = [
-    {
-      id: '1',
-      name: 'Globo',
-      number: 1,
-      logo: '/api/placeholder/60/40',
-      currentProgram: {
-        id: '1',
-        title: 'Jornal Nacional',
-        startTime: '20:00',
-        endTime: '20:30',
-        description: 'As principais notícias do dia no Brasil e no mundo.',
-        category: 'Jornalismo'
-      },
-      programs: [
-        { id: '1', title: 'Jornal Nacional', startTime: '20:00', endTime: '20:30', description: 'As principais notícias do dia.', category: 'Jornalismo' },
-        { id: '2', title: 'Tela Quente', startTime: '20:30', endTime: '22:30', description: 'Filme: Vingadores', category: 'Filme' },
-        { id: '3', title: 'Sessão da Noite', startTime: '22:30', endTime: '00:30', description: 'Filme: O Poderoso Chefão', category: 'Filme' },
-      ]
+  const liveChannels = content.filter(item => item.type === 'live');
+
+  // Criar dados mockados baseados nos canais reais
+  const mockChannels: Channel[] = liveChannels.slice(0, 10).map((channel, index) => ({
+    id: channel.id,
+    name: channel.title,
+    number: index + 1,
+    logo: channel.thumbnail,
+    currentProgram: {
+      id: `prog-${index}`,
+      title: `Programa Atual - ${channel.title}`,
+      startTime: '20:00',
+      endTime: '21:00',
+      description: `Programação ao vivo de ${channel.title}`,
+      category: channel.genre || 'Ao Vivo'
     },
-    {
-      id: '2',
-      name: 'SBT',
-      number: 4,
-      logo: '/api/placeholder/60/40',
-      currentProgram: {
-        id: '4',
-        title: 'Programa Silvio Santos',
-        startTime: '19:00',
+    programs: [
+      {
+        id: `prog-${index}-1`,
+        title: `Programa Atual - ${channel.title}`,
+        startTime: '20:00',
         endTime: '21:00',
-        description: 'O tradicional programa de auditório apresentado por Silvio Santos.',
-        category: 'Entretenimento'
+        description: `Programação ao vivo de ${channel.title}`,
+        category: channel.genre || 'Ao Vivo'
       },
-      programs: [
-        { id: '4', title: 'Programa Silvio Santos', startTime: '19:00', endTime: '21:00', description: 'Programa de auditório.', category: 'Entretenimento' },
-        { id: '5', title: 'Domingo Legal', startTime: '21:00', endTime: '23:00', description: 'Show de calouros.', category: 'Entretenimento' },
-      ]
-    },
-    {
-      id: '3',
-      name: 'Record',
-      number: 7,
-      logo: '/api/placeholder/60/40',
-      currentProgram: {
-        id: '6',
-        title: 'Balanço Geral',
-        startTime: '18:00',
-        endTime: '19:30',
-        description: 'Jornalístico com notícias policiais e urbanas.',
-        category: 'Jornalismo'
-      },
-      programs: [
-        { id: '6', title: 'Balanço Geral', startTime: '18:00', endTime: '19:30', description: 'Notícias policiais.', category: 'Jornalismo' },
-        { id: '7', title: 'A Terra Prometida', startTime: '19:30', endTime: '20:30', description: 'Novela bíblica.', category: 'Novela' },
-      ]
-    },
-    {
-      id: '4',
-      name: 'Band',
-      number: 13,
-      logo: '/api/placeholder/60/40',
-      currentProgram: {
-        id: '8',
-        title: 'Jornal da Band',
-        startTime: '20:00',
-        endTime: '20:45',
-        description: 'Jornalístico com as últimas notícias.',
-        category: 'Jornalismo'
-      },
-      programs: [
-        { id: '8', title: 'Jornal da Band', startTime: '20:00', endTime: '20:45', description: 'Últimas notícias.', category: 'Jornalismo' },
-        { id: '9', title: 'MasterChef', startTime: '20:45', endTime: '22:00', description: 'Reality show de culinária.', category: 'Reality Show' },
-      ]
-    }
-  ];
+      {
+        id: `prog-${index}-2`,
+        title: `Próximo Programa - ${channel.title}`,
+        startTime: '21:00',
+        endTime: '22:00',
+        description: `Continuação da programação de ${channel.title}`,
+        category: channel.genre || 'Ao Vivo'
+      }
+    ]
+  }));
 
   const channels = mockChannels;
 
@@ -158,10 +119,36 @@ const EPG = () => {
       'Novela': 'bg-pink-600',
       'Entretenimento': 'bg-green-600',
       'Reality Show': 'bg-orange-600',
-      'Esportes': 'bg-red-600'
+      'Esportes': 'bg-red-600',
+      'Ao Vivo': 'bg-red-600'
     };
     return colors[category] || 'bg-gray-600';
   };
+
+  if (lists.length === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <Header onMenuToggle={handleMenuToggle} />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <main className={`pt-20 ${isSidebarOpen && !isMobile ? 'ml-64' : ''}`}>
+          <div className="container mx-auto px-4 md:px-8 py-8">
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-semibold mb-2">Nenhuma lista M3U configurada</h2>
+              <p className="text-gray-400 mb-6">
+                Adicione uma lista M3U para acessar o guia de programação
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/m3u-management'}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Configurar Lista M3U
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -245,7 +232,7 @@ const EPG = () => {
                           <Tv className="h-4 w-4 text-gray-400" />
                         </div>
                         <div>
-                          <div className="font-medium text-sm">{channel.name}</div>
+                          <div className="font-medium text-sm truncate">{channel.name}</div>
                           <div className="text-xs text-gray-400">Ch {channel.number}</div>
                         </div>
                       </div>
