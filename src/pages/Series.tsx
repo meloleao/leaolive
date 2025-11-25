@@ -22,20 +22,19 @@ const Series = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedSerie, setSelectedSerie] = useState<any>(null);
   const isMobile = useIsMobile();
-  const { content, toggleFavorite, isFavorite } = useContent();
+  const { 
+    content, 
+    toggleFavorite, 
+    isFavorite,
+    getContentByType,
+    getSeriesByGenre,
+    searchContent
+  } = useContent();
   const { lists } = useM3ULists();
 
-  const series = content.filter(item => item.type === 'series');
+  const series = getContentByType('series');
   
-  // Filtrar séries
-  const filteredSeries = series.filter(serie => {
-    const matchesSearch = serie.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGenre = selectedGenre === 'all' || serie.genre === selectedGenre;
-    const matchesYear = selectedYear === 'all' || serie.year?.toString() === selectedYear;
-    return matchesSearch && matchesGenre && matchesYear;
-  });
-
-  // Obter gêneros únicos
+  // Obter gêneros únicos das séries
   const genres = [...new Set(series.map(serie => serie.genre).filter(Boolean))];
   
   // Obter anos únicos
@@ -68,12 +67,37 @@ const Series = () => {
     console.log('Episode ended');
   };
 
+  // Filtrar séries
+  const getFilteredSeries = () => {
+    let filtered = series;
+    
+    if (searchTerm) {
+      filtered = searchContent(searchTerm).filter(item => item.type === 'series');
+    }
+    
+    if (selectedGenre !== 'all') {
+      filtered = filtered.filter(serie => 
+        serie.genre?.toLowerCase().includes(selectedGenre.toLowerCase())
+      );
+    }
+    
+    if (selectedYear !== 'all') {
+      filtered = filtered.filter(serie => serie.year?.toString() === selectedYear);
+    }
+    
+    return filtered;
+  };
+
+  const filteredSeries = getFilteredSeries();
+
   // Agrupar séries por categoria
-  const dramaSeries = filteredSeries.filter(serie => serie.genre?.toLowerCase().includes('drama'));
-  const comedySeries = filteredSeries.filter(serie => serie.genre?.toLowerCase().includes('comédia') || serie.genre?.toLowerCase().includes('comedy'));
-  const scifiSeries = filteredSeries.filter(serie => serie.genre?.toLowerCase().includes('ficção') || serie.genre?.toLowerCase().includes('sci-fi'));
-  const thrillerSeries = filteredSeries.filter(serie => serie.genre?.toLowerCase().includes('suspense') || serie.genre?.toLowerCase().includes('thriller'));
-  const documentarySeries = filteredSeries.filter(serie => serie.genre?.toLowerCase().includes('documentário') || serie.genre?.toLowerCase().includes('documentary'));
+  const dramaSeries = getSeriesByGenre('drama');
+  const comedySeries = getSeriesByGenre('comédia') || getSeriesByGenre('comedy');
+  const scifiSeries = getSeriesByGenre('ficção') || getSeriesByGenre('sci-fi');
+  const thrillerSeries = getSeriesByGenre('suspense') || getSeriesByGenre('thriller');
+  const documentarySeries = getSeriesByGenre('documentário') || getSeriesByGenre('documentary');
+  const romanceSeries = getSeriesByGenre('romance');
+  const actionSeries = getSeriesByGenre('ação') || getSeriesByGenre('action');
 
   if (lists.length === 0) {
     return (
@@ -181,7 +205,7 @@ const Series = () => {
             </div>
           )}
 
-          {/* Carrosseis por categoria */}
+          {/* Carrosseis por categoria (quando não está buscando) */}
           {!searchTerm && selectedGenre === 'all' && selectedYear === 'all' ? (
             <div className="space-y-8">
               {dramaSeries.length > 0 && (
@@ -224,6 +248,24 @@ const Series = () => {
                 <ContentCarousel 
                   title="Documentários" 
                   items={documentarySeries}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
+              
+              {romanceSeries.length > 0 && (
+                <ContentCarousel 
+                  title="Romance" 
+                  items={romanceSeries}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
+              
+              {actionSeries.length > 0 && (
+                <ContentCarousel 
+                  title="Ação" 
+                  items={actionSeries}
                   onAddToFavorites={handleAddToFavorites}
                   isFavorite={isFavorite}
                 />

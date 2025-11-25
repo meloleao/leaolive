@@ -14,11 +14,31 @@ import { showSuccess, showError } from '@/utils/toast';
 const TVLive = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const isMobile = useIsMobile();
-  const { content, toggleFavorite, isFavorite } = useContent();
+  const { 
+    content, 
+    toggleFavorite, 
+    isFavorite,
+    getContentByType,
+    getLiveChannelsByCategory
+  } = useContent();
   const { lists } = useM3ULists();
 
-  const liveChannels = content.filter(item => item.type === 'live');
+  const liveChannels = getContentByType('live');
+  
+  // Obter categorias únicas dos canais
+  const categories = [...new Set(liveChannels.map(channel => channel.genre).filter(Boolean))];
+
+  // Filtrar canais por categoria
+  const getFilteredChannels = () => {
+    if (selectedCategory === 'all') {
+      return liveChannels;
+    }
+    return getLiveChannelsByCategory(selectedCategory);
+  };
+
+  const filteredChannels = getFilteredChannels();
 
   const handleMenuToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -85,7 +105,23 @@ const TVLive = () => {
       
       <main className={`pt-20 ${isSidebarOpen && !isMobile ? 'ml-64' : ''}`}>
         <div className="container mx-auto px-4 md:px-8 py-8">
-          <h1 className="text-3xl font-bold mb-8">TV Ao Vivo</h1>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">TV Ao Vivo</h1>
+            
+            {/* Filtro de categorias */}
+            <div className="flex items-center space-x-4">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg"
+              >
+                <option value="all">Todas as Categorias</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Player */}
@@ -155,7 +191,9 @@ const TVLive = () => {
               <Card className="bg-gray-900 border-gray-800">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Canais Disponíveis</h3>
+                    <h3 className="text-lg font-semibold">
+                      {selectedCategory === 'all' ? 'Todos os Canais' : selectedCategory}
+                    </h3>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -165,16 +203,19 @@ const TVLive = () => {
                     </Button>
                   </div>
                   
-                  {liveChannels.length === 0 ? (
+                  {filteredChannels.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-400">Nenhum canal ao vivo encontrado</p>
+                      <p className="text-gray-400">Nenhum canal encontrado</p>
                       <p className="text-sm text-gray-500 mt-2">
-                        Verifique se sua lista M3U foi atualizada
+                        {selectedCategory !== 'all' 
+                          ? `Nenhum canal na categoria "${selectedCategory}"` 
+                          : 'Verifique se sua lista M3U foi atualizada'
+                        }
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {liveChannels.map((channel) => (
+                      {filteredChannels.map((channel) => (
                         <div
                           key={channel.id}
                           onClick={() => handleChannelSelect(channel)}
@@ -197,8 +238,8 @@ const TVLive = () => {
                               )}
                             </div>
                             <div className="flex-1">
-                              <h4 className="font-medium text-sm">{channel.title}</h4>
-                              <p className="text-xs text-gray-400">
+                              <h4 className="font-medium text-sm truncate">{channel.title}</h4>
+                              <p className="text-xs text-gray-400 truncate">
                                 {channel.genre || 'Canal ao vivo'}
                               </p>
                             </div>

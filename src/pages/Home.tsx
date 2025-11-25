@@ -12,7 +12,21 @@ import { showSuccess, showError } from '@/utils/toast';
 const Home = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { content, favorites, toggleFavorite, isFavorite, loading } = useContent();
+  const { 
+    content, 
+    favorites, 
+    toggleFavorite, 
+    isFavorite, 
+    loading,
+    getContinueWatching,
+    getFavoritesContent,
+    getTrendingContent,
+    getContentByType,
+    getMoviesByGenre,
+    getSeriesByGenre,
+    getLiveChannelsByCategory,
+    getRandomContent
+  } = useContent();
   const { lists } = useM3ULists();
 
   const handleMenuToggle = () => {
@@ -32,16 +46,6 @@ const Home = () => {
     } catch (error) {
       showError('Erro ao gerenciar favoritos');
     }
-  };
-
-  // Dados reais do conteúdo
-  const realContent = {
-    continueWatching: content.slice(0, 6),
-    myLions: content.filter(item => isFavorite(item.id)).slice(0, 6),
-    trending: content.slice(0, 6),
-    movies: content.filter(item => item.type === 'movie').slice(0, 6),
-    series: content.filter(item => item.type === 'series').slice(0, 6),
-    live: content.filter(item => item.type === 'live').slice(0, 6),
   };
 
   if (loading) {
@@ -80,6 +84,30 @@ const Home = () => {
     );
   }
 
+  // Dados reais organizados por categoria
+  const realContent = {
+    continueWatching: getContinueWatching(),
+    myLions: getFavoritesContent(),
+    trending: getTrendingContent(),
+    actionMovies: getMoviesByGenre('ação') || getMoviesByGenre('action'),
+    comedyMovies: getMoviesByGenre('comédia') || getMoviesByGenre('comedy'),
+    dramaMovies: getMoviesByGenre('drama'),
+    horrorMovies: getMoviesByGenre('terror') || getMoviesByGenre('horror'),
+    romanceMovies: getMoviesByGenre('romance'),
+    dramaSeries: getSeriesByGenre('drama'),
+    comedySeries: getSeriesByGenre('comédia') || getSeriesByGenre('comedy'),
+    scifiSeries: getSeriesByGenre('ficção') || getSeriesByGenre('sci-fi'),
+    thrillerSeries: getSeriesByGenre('suspense') || getSeriesByGenre('thriller'),
+    documentarySeries: getSeriesByGenre('documentário') || getSeriesByGenre('documentary'),
+    newsChannels: getLiveChannelsByCategory('notícias') || getLiveChannelsByCategory('news'),
+    sportsChannels: getLiveChannelsByCategory('esportes') || getLiveChannelsByCategory('sports'),
+    entertainmentChannels: getLiveChannelsByCategory('entretenimento') || getLiveChannelsByCategory('entertainment'),
+    moviesChannels: getLiveChannelsByCategory('filmes') || getLiveChannelsByCategory('movies'),
+    allMovies: getContentByType('movie'),
+    allSeries: getContentByType('series'),
+    allLive: getContentByType('live'),
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Header 
@@ -96,45 +124,181 @@ const Home = () => {
         <FeaturedBanner />
         
         <div className="space-y-8 pb-8">
-          <ContentCarousel 
-            title="Continuar Assistindo" 
-            items={realContent.continueWatching}
-            showAddButton={false}
-          />
+          {/* Continuar Assistindo */}
+          {realContent.continueWatching.length > 0 && (
+            <ContentCarousel 
+              title="Continuar Assistindo" 
+              items={realContent.continueWatching}
+              showAddButton={false}
+            />
+          )}
           
-          <ContentCarousel 
-            title="Meus Lions" 
-            items={realContent.myLions}
-            onAddToFavorites={handleAddToFavorites}
-            isFavorite={isFavorite}
-          />
+          {/* Meus Lions */}
+          {realContent.myLions.length > 0 && (
+            <ContentCarousel 
+              title="Meus Lions" 
+              items={realContent.myLions}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
           
-          <ContentCarousel 
-            title="Em Alta na TV" 
-            items={realContent.trending}
-            onAddToFavorites={handleAddToFavorites}
-            isFavorite={isFavorite}
-          />
+          {/* Em Alta */}
+          {realContent.trending.length > 0 && (
+            <ContentCarousel 
+              title="Em Alta na TV" 
+              items={realContent.trending}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
           
-          <ContentCarousel 
-            title="Filmes Populares" 
-            items={realContent.movies}
-            onAddToFavorites={handleAddToFavorites}
-            isFavorite={isFavorite}
-          />
+          {/* Filmes por Gênero */}
+          {realContent.actionMovies.length > 0 && (
+            <ContentCarousel 
+              title="Ação" 
+              items={realContent.actionMovies}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
           
-          <ContentCarousel 
-            title="Séries Dramáticas" 
-            items={realContent.series}
-            onAddToFavorites={handleAddToFavorites}
-            isFavorite={isFavorite}
-          />
+          {realContent.comedyMovies.length > 0 && (
+            <ContentCarousel 
+              title="Comédia" 
+              items={realContent.comedyMovies}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
           
-          <ContentCarousel 
-            title="Canais Ao Vivo" 
-            items={realContent.live}
-            showAddButton={false}
-          />
+          {realContent.dramaMovies.length > 0 && (
+            <ContentCarousel 
+              title="Drama" 
+              items={realContent.dramaMovies}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.horrorMovies.length > 0 && (
+            <ContentCarousel 
+              title="Terror" 
+              items={realContent.horrorMovies}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.romanceMovies.length > 0 && (
+            <ContentCarousel 
+              title="Romance" 
+              items={realContent.romanceMovies}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {/* Séries por Gênero */}
+          {realContent.dramaSeries.length > 0 && (
+            <ContentCarousel 
+              title="Séries Dramáticas" 
+              items={realContent.dramaSeries}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.comedySeries.length > 0 && (
+            <ContentCarousel 
+              title="Séries de Comédia" 
+              items={realContent.comedySeries}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.scifiSeries.length > 0 && (
+            <ContentCarousel 
+              title="Ficção Científica" 
+              items={realContent.scifiSeries}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.thrillerSeries.length > 0 && (
+            <ContentCarousel 
+              title="Suspense e Thriller" 
+              items={realContent.thrillerSeries}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {/* Canais Ao Vivo por Categoria */}
+          {realContent.newsChannels.length > 0 && (
+            <ContentCarousel 
+              title="Notícias" 
+              items={realContent.newsChannels}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.sportsChannels.length > 0 && (
+            <ContentCarousel 
+              title="Esportes" 
+              items={realContent.sportsChannels}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.entertainmentChannels.length > 0 && (
+            <ContentCarousel 
+              title="Entretenimento" 
+              items={realContent.entertainmentChannels}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.moviesChannels.length > 0 && (
+            <ContentCarousel 
+              title="Canais de Filmes" 
+              items={realContent.moviesChannels}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {/* Geral se não houver conteúdo específico */}
+          {realContent.allMovies.length > 0 && realContent.actionMovies.length === 0 && (
+            <ContentCarousel 
+              title="Filmes Populares" 
+              items={realContent.allMovies}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.allSeries.length > 0 && realContent.dramaSeries.length === 0 && (
+            <ContentCarousel 
+              title="Séries Populares" 
+              items={realContent.allSeries}
+              onAddToFavorites={handleAddToFavorites}
+              isFavorite={isFavorite}
+            />
+          )}
+          
+          {realContent.allLive.length > 0 && realContent.newsChannels.length === 0 && (
+            <ContentCarousel 
+              title="Canais Ao Vivo" 
+              items={realContent.allLive}
+              showAddButton={false}
+            />
+          )}
         </div>
       </main>
     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Plus, Info, Volume2, VolumeX } from 'lucide-react';
+import { useContent } from '@/hooks/useContent';
 
 interface FeaturedContent {
   id: string;
@@ -11,54 +12,76 @@ interface FeaturedContent {
   year: number;
   duration: string;
   genre: string;
+  type: 'movie' | 'series' | 'live';
 }
 
-const featuredContent: FeaturedContent[] = [
-  {
-    id: '1',
-    title: 'Aventura Espacial',
-    description: 'Uma jornada épica através das galáxias enquanto a humanidade luta por sua sobrevivência contra forças desconhecidas.',
-    backdrop: '/api/placeholder/1920/1080',
-    rating: '16',
-    year: 2024,
-    duration: '2h 15min',
-    genre: 'Ficção Científica'
-  },
-  {
-    id: '2',
-    title: 'Mistério na Floresta',
-    description: 'Um detetive investiga desaparecimentos misteriosos em uma pequena cidade cercada por uma floresta antiga.',
-    backdrop: '/api/placeholder/1920/1080',
-    rating: '14',
-    year: 2024,
-    duration: '1h 48min',
-    genre: 'Suspense'
-  },
-  {
-    id: '3',
-    title: 'Comédia Romântica',
-    description: 'Dois estranhos se conhecem em um voo e descobrem que o amor pode surgir nos lugares mais inesperados.',
-    backdrop: '/api/placeholder/1920/1080',
-    rating: '12',
-    year: 2024,
-    duration: '1h 35min',
-    genre: 'Comédia'
-  }
-];
-
-export const FeaturedBanner = () => {
+const FeaturedBanner = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const { getRandomContent } = useContent();
+
+  // Obter conteúdo aleatório para o banner
+  const featuredContent: FeaturedContent[] = getRandomContent(5).map(item => ({
+    id: item.id,
+    title: item.title,
+    description: item.description || 'Descubra este conteúdo incrível disponível agora no Leão Live.',
+    backdrop: item.thumbnail,
+    rating: item.rating || 'L',
+    year: item.year || new Date().getFullYear(),
+    duration: item.duration || 'Varia',
+    genre: item.genre || 'Geral',
+    type: item.type
+  }));
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % featuredContent.length);
-    }, 8000);
+    if (featuredContent.length > 0) {
+      const timer = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % featuredContent.length);
+      }, 8000);
 
-    return () => clearInterval(timer);
-  }, []);
+      return () => clearInterval(timer);
+    }
+  }, [featuredContent.length]);
+
+  if (featuredContent.length === 0) {
+    return (
+      <div className="relative h-[70vh] md:h-[80vh] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-black" />
+        <div className="relative z-10 h-full flex items-center">
+          <div className="container mx-auto px-4 md:px-8">
+            <div className="max-w-2xl">
+              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+                Bem-vindo ao Leão Live
+              </h1>
+              <p className="text-lg text-gray-200 mb-6">
+                Configure sua lista M3U para acessar milhares de canais, filmes e séries.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <Button 
+                  size="lg" 
+                  className="bg-white text-black hover:bg-gray-200 px-8 py-3"
+                  onClick={() => window.location.href = '/m3u-management'}
+                >
+                  Configurar Lista M3U
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const currentContent = featuredContent[currentIndex];
+
+  const getTypeLabel = () => {
+    switch (currentContent.type) {
+      case 'movie': return 'Filme';
+      case 'series': return 'Série';
+      case 'live': return 'Canal Ao Vivo';
+      default: return 'Conteúdo';
+    }
+  };
 
   return (
     <div className="relative h-[70vh] md:h-[80vh] overflow-hidden">
@@ -88,6 +111,9 @@ export const FeaturedBanner = () => {
               </span>
               <span className="text-white">{currentContent.duration}</span>
               <span className="text-white">{currentContent.genre}</span>
+              <span className="text-white border border-white/50 px-2 py-1 text-sm">
+                {getTypeLabel()}
+              </span>
             </div>
             
             <p className="text-lg text-gray-200 mb-6 line-clamp-3">
@@ -157,3 +183,5 @@ export const FeaturedBanner = () => {
     </div>
   );
 };
+
+export default FeaturedBanner;

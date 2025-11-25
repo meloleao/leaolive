@@ -22,20 +22,19 @@ const Movies = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedMovie, setSelectedMovie] = useState<any>(null);
   const isMobile = useIsMobile();
-  const { content, toggleFavorite, isFavorite } = useContent();
+  const { 
+    content, 
+    toggleFavorite, 
+    isFavorite,
+    getContentByType,
+    getMoviesByGenre,
+    searchContent
+  } = useContent();
   const { lists } = useM3ULists();
 
-  const movies = content.filter(item => item.type === 'movie');
+  const movies = getContentByType('movie');
   
-  // Filtrar filmes
-  const filteredMovies = movies.filter(movie => {
-    const matchesSearch = movie.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGenre = selectedGenre === 'all' || movie.genre === selectedGenre;
-    const matchesYear = selectedYear === 'all' || movie.year?.toString() === selectedYear;
-    return matchesSearch && matchesGenre && matchesYear;
-  });
-
-  // Obter gêneros únicos
+  // Obter gêneros únicos dos filmes
   const genres = [...new Set(movies.map(movie => movie.genre).filter(Boolean))];
   
   // Obter anos únicos
@@ -68,12 +67,37 @@ const Movies = () => {
     console.log('Movie ended');
   };
 
+  // Filtrar filmes
+  const getFilteredMovies = () => {
+    let filtered = movies;
+    
+    if (searchTerm) {
+      filtered = searchContent(searchTerm).filter(item => item.type === 'movie');
+    }
+    
+    if (selectedGenre !== 'all') {
+      filtered = filtered.filter(movie => 
+        movie.genre?.toLowerCase().includes(selectedGenre.toLowerCase())
+      );
+    }
+    
+    if (selectedYear !== 'all') {
+      filtered = filtered.filter(movie => movie.year?.toString() === selectedYear);
+    }
+    
+    return filtered;
+  };
+
+  const filteredMovies = getFilteredMovies();
+
   // Agrupar filmes por categoria
-  const actionMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('ação') || movie.genre?.toLowerCase().includes('action'));
-  const comedyMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('comédia') || movie.genre?.toLowerCase().includes('comedy'));
-  const dramaMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('drama'));
-  const horrorMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('terror') || movie.genre?.toLowerCase().includes('horror'));
-  const romanceMovies = filteredMovies.filter(movie => movie.genre?.toLowerCase().includes('romance'));
+  const actionMovies = getMoviesByGenre('ação') || getMoviesByGenre('action');
+  const comedyMovies = getMoviesByGenre('comédia') || getMoviesByGenre('comedy');
+  const dramaMovies = getMoviesByGenre('drama');
+  const horrorMovies = getMoviesByGenre('terror') || getMoviesByGenre('horror');
+  const romanceMovies = getMoviesByGenre('romance');
+  const scifiMovies = getMoviesByGenre('ficção') || getMoviesByGenre('sci-fi');
+  const thrillerMovies = getMoviesByGenre('suspense') || getMoviesByGenre('thriller');
 
   if (lists.length === 0) {
     return (
@@ -181,7 +205,7 @@ const Movies = () => {
             </div>
           )}
 
-          {/* Carrosseis por categoria */}
+          {/* Carrosseis por categoria (quando não está buscando) */}
           {!searchTerm && selectedGenre === 'all' && selectedYear === 'all' ? (
             <div className="space-y-8">
               {actionMovies.length > 0 && (
@@ -224,6 +248,24 @@ const Movies = () => {
                 <ContentCarousel 
                   title="Romance" 
                   items={romanceMovies}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
+              
+              {scifiMovies.length > 0 && (
+                <ContentCarousel 
+                  title="Ficção Científica" 
+                  items={scifiMovies}
+                  onAddToFavorites={handleAddToFavorites}
+                  isFavorite={isFavorite}
+                />
+              )}
+              
+              {thrillerMovies.length > 0 && (
+                <ContentCarousel 
+                  title="Suspense" 
+                  items={thrillerMovies}
                   onAddToFavorites={handleAddToFavorites}
                   isFavorite={isFavorite}
                 />

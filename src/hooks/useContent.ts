@@ -102,6 +102,61 @@ export const useContent = () => {
     return favorites.includes(contentId);
   };
 
+  // Novas funções para obter conteúdo por categoria específica
+  const getMoviesByGenre = (genre: string) => {
+    return content.filter(item => 
+      item.type === 'movie' && 
+      item.genre?.toLowerCase().includes(genre.toLowerCase())
+    );
+  };
+
+  const getSeriesByGenre = (genre: string) => {
+    return content.filter(item => 
+      item.type === 'series' && 
+      item.genre?.toLowerCase().includes(genre.toLowerCase())
+    );
+  };
+
+  const getLiveChannelsByCategory = (category: string) => {
+    return content.filter(item => 
+      item.type === 'live' && 
+      item.genre?.toLowerCase().includes(category.toLowerCase())
+    );
+  };
+
+  // Funções para obter conteúdo destacado
+  const getFeaturedContent = () => {
+    return content.slice(0, 10); // Primeiros 10 itens como destacados
+  };
+
+  const getContinueWatching = () => {
+    // Simulação - em produção, buscar do histórico do usuário
+    return content.slice(0, 6);
+  };
+
+  const getTrendingContent = () => {
+    // Simulação - em produção, baseado em visualizações recentes
+    return content.slice(0, 12);
+  };
+
+  // Função para buscar conteúdo
+  const searchContent = (query: string) => {
+    if (!query) return content;
+    
+    const lowercaseQuery = query.toLowerCase();
+    return content.filter(item => 
+      item.title.toLowerCase().includes(lowercaseQuery) ||
+      item.description?.toLowerCase().includes(lowercaseQuery) ||
+      item.genre?.toLowerCase().includes(lowercaseQuery)
+    );
+  };
+
+  // Função para obter conteúdo aleatório para banners
+  const getRandomContent = (count: number = 3) => {
+    const shuffled = [...content].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
   useEffect(() => {
     if (user) {
       fetchContent();
@@ -121,6 +176,15 @@ export const useContent = () => {
     toggleFavorite,
     getContentByType,
     getFavoritesContent,
-    isFavorite
+    isFavorite,
+    // Novas funções
+    getMoviesByGenre,
+    getSeriesByGenre,
+    getLiveChannelsByCategory,
+    getFeaturedContent,
+    getContinueWatching,
+    getTrendingContent,
+    searchContent,
+    getRandomContent
   };
 };
