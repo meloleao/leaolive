@@ -99,3 +99,41 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Estilos específicos para o Leão Live */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Animações suaves para transições */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Efeito de brilho para elementos interativos */
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+/* Gradientes personalizados */
+.gradient-red {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+}
+
+.gradient-dark {
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%);
+}
