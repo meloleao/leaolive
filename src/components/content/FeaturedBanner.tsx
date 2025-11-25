@@ -15,7 +15,7 @@ interface FeaturedContent {
   type: 'movie' | 'series' | 'live';
 }
 
-const FeaturedBanner = () => {
+const FeaturedBanner: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const { getRandomContent } = useContent();
